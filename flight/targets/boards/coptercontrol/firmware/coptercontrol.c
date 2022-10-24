@@ -97,7 +97,7 @@ int main()
      *
      */
     vTaskStartScheduler();
-
+    DEBUG_PRINTF(3, "Hello World.");//syz
     /* If all is well we will never reach here as the scheduler will now be running. */
 
     /* Do some indication to user that something bad just happened */

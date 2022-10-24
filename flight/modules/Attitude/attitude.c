@@ -284,7 +284,7 @@ static void AttitudeTask(__attribute__((unused)) void *parameters)
     while (1) {
         FlightStatusData flightStatus;
         FlightStatusGet(&flightStatus);
-
+        //DEBUG_PRINTF(3, "Hello World.");//syz
         if ((xTaskGetTickCount() < 7000) && (xTaskGetTickCount() > 1000)) {
             // Use accels to initialise attitude and calculate gyro bias
             accelKp     = 1.0f;

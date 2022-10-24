@@ -49,7 +49,7 @@
 #include <stabilization.h>
 #include <virtualflybar.h>
 #include <cruisecontrol.h>
-
+#include "actuatorcommand.h"//syz
 // Private constants
 
 #define CALLBACK_PRIORITY CALLBACK_PRIORITY_CRITICAL
@@ -73,6 +73,7 @@ static void GyroStateUpdatedCb(__attribute__((unused)) UAVObjEvent *ev);
 #ifdef REVOLUTION
 static void AirSpeedUpdatedCb(__attribute__((unused)) UAVObjEvent *ev);
 #endif
+void syz_debug_print(float input,int scaleK);//syz
 
 void stabilizationInnerloopInit()
 {
@@ -240,12 +241,13 @@ static void stabilizationInnerloopTask()
     int t;
     float dT;
     dT = PIOS_DELTATIME_GetAverageSeconds(&timeval);
+    int scaleK = 1000;
 
     for (t = 0; t < AXES; t++) {
         bool reinit = (StabilizationStatusInnerLoopToArray(enabled)[t] != previous_mode[t]);
         previous_mode[t] = StabilizationStatusInnerLoopToArray(enabled)[t];
 
-        if (t < STABILIZATIONSTATUS_INNERLOOP_THRUST) {
+        if (t < STABILIZATIONSTATUS_INNERLOOP_THRUST) {//这里这个值为3
             if (reinit) {
                 stabSettings.innerPids[t].iAccumulator = 0;
             }
@@ -309,7 +311,56 @@ static void stabilizationInnerloopTask()
         }
 
         actuatorDesiredAxis[t] = boundf(actuatorDesiredAxis[t], -1.0f, 1.0f);
+        //\r\nO\t
+        //syz
+        // if (t==0){DEBUG_PRINTF(3, "\r\nI\t");}
+        // syz_debug_print(actuatorDesiredAxis[t],scaleK);
+        // syz_debug_print(rate[t],scaleK);
+        // syz_debug_print(gyro_filtered[t],scaleK);
+
+
+        // if (rate[t]<0)
+        // {
+        //     rate_uint[t] = (-1)*rate[t]*scaleK;
+        //     DEBUG_PRINTF(3, "-%d\t", rate_uint[t]); // syz
+        // }
+        // else{
+        //     rate_uint[t] = rate[t]*scaleK;
+        //     DEBUG_PRINTF(3, "%d\t", rate_uint[t]); // syz
+        // }
+
     }
+
+
+    // DEBUG_PRINTF(3, "\r\nI\t");
+         DEBUG_PRINTF(3, "\r\ng\t");
+    // syz_debug_print(actuatorDesiredAxis[0],scaleK);
+    // syz_debug_print(actuatorDesiredAxis[1],scaleK);
+    // syz_debug_print(actuatorDesiredAxis[2],scaleK);
+
+    // syz_debug_print(rate[0],scaleK);//内环期望
+    // syz_debug_print(rate[1],scaleK);
+         syz_debug_print(rate[2],scaleK);
+    // syz_debug_print(gyro_filtered[0],scaleK);//内环角速度测量值
+    // syz_debug_print(gyro_filtered[1],scaleK);
+    // syz_debug_print(gyro_filtered[2],scaleK);
+
+    // ActuatorCommandData command;
+    // ActuatorCommandGet(&command);
+    
+    // DEBUG_PRINTF(3, "\r\nA\t");
+    // DEBUG_PRINTF(3, "%d\t",command.Channel[2]);
+    // DEBUG_PRINTF(3, "%d\t",command.Channel[3]);
+    // DEBUG_PRINTF(3, "%d\t",command.Channel[4]);
+    // DEBUG_PRINTF(3, "%d\t",command.Channel[5]);
+    // if (gyro_filtered[0]<0)
+    // {
+    //     gyro_filtered_uint[0] = (-1)*gyro_filtered[0]*scaleK;
+    //     DEBUG_PRINTF(3, "-%d\t", gyro_filtered_uint[t]); // syz
+    // }
+    // else{
+    //     DEBUG_PRINTF(3, "%d\t", gyro_filtered_uint[t]); // syz
+    // }
 
     actuator.UpdateTime = dT * 1000;
 
@@ -387,3 +438,20 @@ static void AirSpeedUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
  * @}
  * @}
  */
+void syz_debug_print(float input,int scaleK)
+{
+    // uint32_t output_uint;
+    // if (input<0)
+    // {
+    //     output_uint = (-1)*input*scaleK;
+    //     DEBUG_PRINTF(3, "-%d\t", output_uint); // syz
+    // }
+    // else{
+    //     output_uint = input*scaleK;
+    //     DEBUG_PRINTF(3, "%d\t", output_uint); // syz
+    // }
+
+    int32_t output_int;
+    output_int = input*scaleK;
+    DEBUG_PRINTF(3, "%d\t", output_int); // syz
+}

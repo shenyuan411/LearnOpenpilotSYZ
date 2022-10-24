@@ -97,7 +97,7 @@ static void ActuatorSettingsUpdatedCb(UAVObjEvent *ev);
 float ProcessMixer(const int index, const float curve1, const float curve2,
                    const MixerSettingsData *mixerSettings, ActuatorDesiredData *desired,
                    const float period);
-
+// void syz_debug_print(float input,int scaleK);//syz
 // this structure is equivalent to the UAVObjects for one mixer.
 typedef struct {
     uint8_t type;
@@ -244,7 +244,7 @@ static void actuatorTask(__attribute__((unused)) void *parameters)
 
         // read in throttle and collective -demultiplex thrust
         switch (thrustType) {
-        case SYSTEMSETTINGS_THRUSTCONTROL_THROTTLE:
+        case SYSTEMSETTINGS_THRUSTCONTROL_THROTTLE://corpter control 里面默认的就是这种
             throttleDesired = desired.Thrust;
             ManualControlCommandCollectiveGet(&collectiveDesired);
             break;
@@ -433,7 +433,14 @@ static void actuatorTask(__attribute__((unused)) void *parameters)
                                                   actuatorSettings.ChannelMin[i],
                                                   actuatorSettings.ChannelNeutral[i]);
             }
+            
+            //syz_debug_print(command.Channel[i],1);//syz
         }
+        // DEBUG_PRINTF(3, "\r\nA%d\t");
+        // DEBUG_PRINTF(3, "%d\t",command.Channel[0]);
+        // DEBUG_PRINTF(3, "%d\t",command.Channel[1]);
+        // DEBUG_PRINTF(3, "%d\t",command.Channel[2]);
+        // DEBUG_PRINTF(3, "%d\t",command.Channel[3]);
 
         // Store update time
         command.UpdateTime = dTMilliseconds;
@@ -839,3 +846,16 @@ static void MixerSettingsUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
  * @}
  * @}
  */
+// void syz_debug_print(float input,int scaleK)
+// {
+//     uint32_t output_uint;
+//     if (input<0)
+//     {
+//         output_uint = (-1)*input*scaleK;
+//         DEBUG_PRINTF(3, "-%d\t", output_uint); // syz
+//     }
+//     else{
+//         output_uint = input*scaleK;
+//         DEBUG_PRINTF(3, "%d\t", output_uint); // syz
+//     }
+// }
