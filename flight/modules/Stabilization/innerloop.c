@@ -375,7 +375,7 @@ static void stabilizationInnerloopTask()
 
         // PIOS_SendFloat48(pios_com_debug_id, rate[2], gyro_filtered[2], actuatorDesiredAxis[2]);
         
-        PIOS_SendUInt32(pios_com_debug_id, xTaskGetTickCount() * portTICK_RATE_MS);
+        // PIOS_SendUInt32(pios_com_debug_id, xTaskGetTickCount() * portTICK_RATE_MS);// 发送时间信息，供测试。发现加上后可能存在串口带宽不够的情况。
         PIOS_SendFloat48(pios_com_debug_id, rate[2], gyro_filtered[2], sweep_output);
         // PIOS_SendInt16(pios_com_debug_id, command.Channel[0], command.Channel[1]);
         // 串口发送函数在flight/pios/common/pios_com.c
