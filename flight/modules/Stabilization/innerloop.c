@@ -436,6 +436,14 @@ static void AirSpeedUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
 //     DEBUG_PRINTF(3, "%d", output_int); // syz
 // }
 
+
+/// @brief 用于生成扫频信号，公式参考fabian.wang的书：飞机与旋翼机系统辨识，工程方法和飞行实验案例 P90
+/// @param T_rec 从最小频率到最大频率的整个扫频周期
+/// @param dT 每次循环的频率，内环默认0.002s
+/// @param A 幅值-A～+A
+/// @param omega_min 扫频的最小频率
+/// @param omega_max 扫频的最大频率
+/// @return 扫频信号输出
 float sweep(int T_rec,float dT, float A, float omega_min, float omega_max)
 {
     const float C1 = 4.0f;
