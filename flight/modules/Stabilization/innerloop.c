@@ -50,6 +50,8 @@
 #include <virtualflybar.h>
 #include <cruisecontrol.h>
 #include "actuatorcommand.h"//syz
+// #include <cmath> //syz
+#include <pios_com.h>
 // Private constants
 
 #define CALLBACK_PRIORITY CALLBACK_PRIORITY_CRITICAL
@@ -66,7 +68,9 @@ static float axis_lock_accum[3] = { 0, 0, 0 };
 static uint8_t previous_mode[AXES] = { 255, 255, 255, 255 };
 static PiOSDeltatimeConfig timeval;
 static float speedScaleFactor = 1.0f;
-
+static float t_sweep = 0.000f; // syz
+static float theta = 0.000f; // syz
+float sweep_output = 0.00f; // syz
 // Private functions
 static void stabilizationInnerloopTask();
 static void GyroStateUpdatedCb(__attribute__((unused)) UAVObjEvent *ev);
@@ -74,6 +78,7 @@ static void GyroStateUpdatedCb(__attribute__((unused)) UAVObjEvent *ev);
 static void AirSpeedUpdatedCb(__attribute__((unused)) UAVObjEvent *ev);
 #endif
 void syz_debug_print(float input,int scaleK);//syz
+float sweep(int T_rec,float dT, float A, float omega_min, float omega_max);// syz
 
 void stabilizationInnerloopInit()
 {
@@ -241,7 +246,6 @@ static void stabilizationInnerloopTask()
     int t;
     float dT;
     dT = PIOS_DELTATIME_GetAverageSeconds(&timeval);
-    int scaleK = 1000;
 
     for (t = 0; t < AXES; t++) {
         bool reinit = (StabilizationStatusInnerLoopToArray(enabled)[t] != previous_mode[t]);
@@ -311,56 +315,8 @@ static void stabilizationInnerloopTask()
         }
 
         actuatorDesiredAxis[t] = boundf(actuatorDesiredAxis[t], -1.0f, 1.0f);
-        //\r\nO\t
-        //syz
-        // if (t==0){DEBUG_PRINTF(3, "\r\nI\t");}
-        // syz_debug_print(actuatorDesiredAxis[t],scaleK);
-        // syz_debug_print(rate[t],scaleK);
-        // syz_debug_print(gyro_filtered[t],scaleK);
-
-
-        // if (rate[t]<0)
-        // {
-        //     rate_uint[t] = (-1)*rate[t]*scaleK;
-        //     DEBUG_PRINTF(3, "-%d\t", rate_uint[t]); // syz
-        // }
-        // else{
-        //     rate_uint[t] = rate[t]*scaleK;
-        //     DEBUG_PRINTF(3, "%d\t", rate_uint[t]); // syz
-        // }
 
     }
-
-
-    // DEBUG_PRINTF(3, "\r\nI\t");
-         DEBUG_PRINTF(3, "\r\ng\t");
-    // syz_debug_print(actuatorDesiredAxis[0],scaleK);
-    // syz_debug_print(actuatorDesiredAxis[1],scaleK);
-    // syz_debug_print(actuatorDesiredAxis[2],scaleK);
-
-    // syz_debug_print(rate[0],scaleK);//内环期望
-    // syz_debug_print(rate[1],scaleK);
-         syz_debug_print(rate[2],scaleK);
-    // syz_debug_print(gyro_filtered[0],scaleK);//内环角速度测量值
-    // syz_debug_print(gyro_filtered[1],scaleK);
-    // syz_debug_print(gyro_filtered[2],scaleK);
-
-    // ActuatorCommandData command;
-    // ActuatorCommandGet(&command);
-    
-    // DEBUG_PRINTF(3, "\r\nA\t");
-    // DEBUG_PRINTF(3, "%d\t",command.Channel[2]);
-    // DEBUG_PRINTF(3, "%d\t",command.Channel[3]);
-    // DEBUG_PRINTF(3, "%d\t",command.Channel[4]);
-    // DEBUG_PRINTF(3, "%d\t",command.Channel[5]);
-    // if (gyro_filtered[0]<0)
-    // {
-    //     gyro_filtered_uint[0] = (-1)*gyro_filtered[0]*scaleK;
-    //     DEBUG_PRINTF(3, "-%d\t", gyro_filtered_uint[t]); // syz
-    // }
-    // else{
-    //     DEBUG_PRINTF(3, "%d\t", gyro_filtered_uint[t]); // syz
-    // }
 
     actuator.UpdateTime = dT * 1000;
 
@@ -397,6 +353,39 @@ static void stabilizationInnerloopTask()
             }
         }
     }
+    
+    // int scaleK = 1000;
+    uint8_t armed;
+    FlightStatusArmedGet(&armed);
+    if (armed == FLIGHTSTATUS_ARMED_ARMED)
+    {
+        // ActuatorCommandData command;
+        // ActuatorCommandGet(&command);
+        // uint32_t ft = xTaskGetTickCount() * portTICK_RATE_MS;// 获取系统时钟 单位ms
+
+        // DEBUG_PRINTF(3, "%d",(int32_t)(rate[2]*1000));// 内环期望，放大1000倍
+        // DEBUG_PRINTF(3, "%d",(int32_t)(gyro_filtered[2]*1000));// 内环直接测量，经过滤波，未经加工，放大1000倍
+        // DEBUG_PRINTF(3, "%d",(int32_t)(actuatorDesiredAxis[2]*1000));// 内环结果，放大1000倍
+        // DEBUG_PRINTF(3, "%d",(int16_t)command.Channel[0]);// 执行器指令
+        // DEBUG_PRINTF(3, "%d",(int16_t)command.Channel[1]);// 执行器指令
+
+        // 这里可以加入扫频的结果项用来干扰
+        sweep_output = sweep(30,dT,1.0f,3.0f, 52.0f);
+        // actuatorDesiredAxis[2] += sweep_output;
+
+        // PIOS_SendFloat48(pios_com_debug_id, rate[2], gyro_filtered[2], actuatorDesiredAxis[2]);
+        
+        PIOS_SendUInt32(pios_com_debug_id, xTaskGetTickCount() * portTICK_RATE_MS);
+        PIOS_SendFloat48(pios_com_debug_id, rate[2], gyro_filtered[2], sweep_output);
+        // PIOS_SendInt16(pios_com_debug_id, command.Channel[0], command.Channel[1]);
+        // 串口发送函数在flight/pios/common/pios_com.c
+    }else 
+    {
+        t_sweep = 0.0f; // 一旦重新恢复锁定，则重置扫频的计数
+    }
+
+    
+
     PIOS_CALLBACKSCHEDULER_Schedule(callbackHandle, FAILSAFE_TIMEOUT_MS, CALLBACK_UPDATEMODE_LATER);
 }
 
@@ -438,20 +427,37 @@ static void AirSpeedUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
  * @}
  * @}
  */
-void syz_debug_print(float input,int scaleK)
-{
-    // uint32_t output_uint;
-    // if (input<0)
-    // {
-    //     output_uint = (-1)*input*scaleK;
-    //     DEBUG_PRINTF(3, "-%d\t", output_uint); // syz
-    // }
-    // else{
-    //     output_uint = input*scaleK;
-    //     DEBUG_PRINTF(3, "%d\t", output_uint); // syz
-    // }
 
-    int32_t output_int;
-    output_int = input*scaleK;
-    DEBUG_PRINTF(3, "%d\t", output_int); // syz
+
+// void syz_debug_print(float input,int scaleK)
+// {
+//     int32_t output_int;
+//     output_int = input*scaleK;
+//     DEBUG_PRINTF(3, "%d", output_int); // syz
+// }
+
+float sweep(int T_rec,float dT, float A, float omega_min, float omega_max)
+{
+    const float C1 = 4.0f;
+    const float C2 = 0.0187f;
+
+    //变量，无需外传计数，每次被覆盖
+    float K = 0.0f;
+    float omega = 0.0f;
+    float delta = 0.00f;
+
+    if (t_sweep < T_rec){
+        t_sweep += dT;
+        K = C2 * (expf(C1*t_sweep/T_rec) - 1);
+        omega = omega_min + K*(omega_max -omega_min);
+        theta += omega * dT;
+        delta = A * sinf(theta);
+    }else{
+        t_sweep += dT;// 这句没什么用，除了为了画图
+        delta = 0.0f;
+    }
+
+    return delta;
+
 }
+

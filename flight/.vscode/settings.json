@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "type_traits": "c"
+        "type_traits": "c",
+        "stabilization.h": "c",
+        "systemmod.h": "c",
+        "syzprint.h": "c"
     }
 }

@@ -52,6 +52,10 @@
 #include <actuatordesired.h>
 #include <gyrostate.h>
 #include "actuatorcommand.h"//syz
+#include <systemstats.h>//syz
+// #include <systemmod.h>//syz
+// #include <syzprint.h>
+
 // Private constants
 
 #define CALLBACK_PRIORITY CALLBACK_PRIORITY_REGULAR
@@ -113,7 +117,7 @@ static void stabilizationOuterloopTask()
     float local_error[3];
     // uint32_t attitudeState_uint[3];
     // uint32_t attitudeDesired_uint[3];
-    int scaleK = 1000;
+    
     {
 #if defined(PIOS_QUATERNION_STABILIZATION)
         // Quaternion calculation of error in each axis.  Uses more memory.
@@ -162,14 +166,7 @@ static void stabilizationOuterloopTask()
 #endif /* if defined(PIOS_QUATERNION_STABILIZATION) */
     }
  
-    DEBUG_PRINTF(3, "\r\nO\t");
-    for (int i = 0; i < 3; i++)
-    {
-        syz_debug_print_out(stabilizationDesiredAxis[i],scaleK);
-    }
-    syz_debug_print_out(attitudeState.Roll,scaleK);
-    syz_debug_print_out(attitudeState.Pitch,scaleK);
-    syz_debug_print_out(attitudeState.Yaw,scaleK);
+
 
 
     
@@ -317,9 +314,7 @@ static void stabilizationOuterloopTask()
             }
         }
     }
-    syz_debug_print_out(rateDesiredAxis[0],scaleK);
-    syz_debug_print_out(rateDesiredAxis[1],scaleK);
-    syz_debug_print_out(rateDesiredAxis[2],scaleK);
+
 
     RateDesiredSet(&rateDesired);
     {
@@ -343,31 +338,65 @@ static void stabilizationOuterloopTask()
     stabSettings.monitor.rateupdates = 0;
 
     // syz print
-    // RateDesiredData rateDesired;
-    ActuatorDesiredData actuator;
-    // RateDesiredGet(&rateDesired);
-    ActuatorDesiredGet(&actuator);
-    // float *rate = &rateDesired.Roll;
-    float *actuatorDesiredAxis = &actuator.Roll;
-    DEBUG_PRINTF(3, "\r\nIo\t");
-    syz_debug_print_out(actuatorDesiredAxis[0],scaleK);
-    syz_debug_print_out(actuatorDesiredAxis[1],scaleK);
-    syz_debug_print_out(actuatorDesiredAxis[2],scaleK);
-    // syz_debug_print_out(gyro_filtered[0],scaleK);
-    // syz_debug_print_out(gyro_filtered[1],scaleK);
-    // syz_debug_print_out(gyro_filtered[2],scaleK);
-    // syz_debug_print_out(rate[0],scaleK);
-    // syz_debug_print_out(rate[1],scaleK);
-    // syz_debug_print_out(rate[2],scaleK);
+    uint8_t armed;
+    FlightStatusArmedGet(&armed);
 
-    // ActuatorCommandData command;
-    // ActuatorCommandGet(&command);
-    
-    // DEBUG_PRINTF(3, "\r\nA\t");
-    // DEBUG_PRINTF(3, "%d\t",command.Channel[2]);
-    // DEBUG_PRINTF(3, "%d\t",command.Channel[3]);
-    // DEBUG_PRINTF(3, "%d\t",command.Channel[4]);
-    // DEBUG_PRINTF(3, "%d\t",command.Channel[5]);
+
+
+    if (armed == FLIGHTSTATUS_ARMED_ARMED)
+    {
+        // int scaleK = 1000;
+        // SystemStatsData stats;
+        // // Get stats and update
+        // SystemStatsGet(&stats);
+        // uint32_t ft = xTaskGetTickCount() * portTICK_RATE_MS;
+
+        /*
+        DEBUG_PRINTF(3, "\r\nO\t");
+        
+        // 外环期望
+        for (int i = 0; i < 3; i++)
+        {
+            syz_debug_print_out(stabilizationDesiredAxis[i],scaleK);
+        }
+        // 外环测量
+        syz_debug_print_out(attitudeState.Roll,scaleK);
+        syz_debug_print_out(attitudeState.Pitch,scaleK);
+        syz_debug_print_out(attitudeState.Yaw,scaleK);
+        // 外环结果
+        syz_debug_print_out(rateDesiredAxis[0],scaleK);
+        syz_debug_print_out(rateDesiredAxis[1],scaleK);
+        syz_debug_print_out(rateDesiredAxis[2],scaleK);*/
+
+        // 内环
+        // RateDesiredData rateDesired;
+        // RateDesiredGet(&rateDesired);
+        // float *rate = &rateDesired.Roll;
+        // ActuatorDesiredData actuator;
+        // ActuatorDesiredGet(&actuator);
+        // float *actuatorDesiredAxis = &actuator.Roll;
+        // DEBUG_PRINTF(3, "\r\nIo\t");
+        // syz_debug_print_out(actuatorDesiredAxis[0],scaleK);
+        // syz_debug_print_out(actuatorDesiredAxis[1],scaleK);
+        // syz_debug_print_out(actuatorDesiredAxis[2],scaleK);
+        // syz_debug_print_out(gyro_filtered[0],scaleK);
+        // syz_debug_print_out(gyro_filtered[1],scaleK);
+        // syz_debug_print_out(gyro_filtered[2],scaleK);
+        // syz_debug_print_out(rate[0],scaleK);
+        // syz_debug_print_out(rate[1],scaleK);
+        // syz_debug_print_out(rate[2],scaleK);
+
+        //执行器结果
+        // ActuatorCommandData command;
+        // ActuatorCommandGet(&command);
+        
+        // DEBUG_PRINTF(3, "\r\nA\t");
+        // DEBUG_PRINTF(3, "%d\t",command.Channel[2]);
+        // DEBUG_PRINTF(3, "%d\t",command.Channel[3]);
+        // DEBUG_PRINTF(3, "%d\t",command.Channel[4]);
+        // DEBUG_PRINTF(3, "%d\t",command.Channel[5]);
+
+    }
 }
 
 static void AttitudeStateUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
@@ -443,9 +472,9 @@ static void AttitudeStateUpdatedCb(__attribute__((unused)) UAVObjEvent *ev)
 	
 // }
 
-void syz_debug_print_out(float input,int scaleK)
-{
-    int32_t output_uint;
-    output_uint = input*scaleK;
-    DEBUG_PRINTF(3, "%d\t", output_uint); // syz
-}
+// void syz_debug_print_out(float input,int scaleK)
+// {
+//     int32_t output_uint;
+//     output_uint = input*scaleK;
+//     DEBUG_PRINTF(3, ",%d\t", output_uint); // syz
+// }

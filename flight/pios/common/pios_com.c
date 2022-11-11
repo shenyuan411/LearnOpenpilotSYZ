@@ -591,6 +591,99 @@ bool PIOS_COM_Available(uint32_t com_id)
 
     return (com_dev->driver->available)(com_dev->lower_id);
 }
+// SYZ ADD
+// 发送3个float数据，包头为5a。
+extern int32_t PIOS_SendFloat48(uint32_t debug_level, float f_dat1, float f_dat2, float f_dat3)
+{
+    uint8_t len = 14;
+    uint8_t tbuf[len];
+    int i;
+    unsigned char *p1 ,*p2, *p3;
+
+    for(i = 0; i<= len-1; i++){
+        tbuf[i] = 0;
+    }
+    p1=(unsigned char *)&f_dat1;		
+    p2=(unsigned char *)&f_dat2;		
+    p3=(unsigned char *)&f_dat3;		
+    tbuf[0] = 0x5a;
+    // tbuf[1] = channel;  //0xA1
+    // tbuf[2] = 4;
+    tbuf[1]=(unsigned char)(*(p1+0));        //取float类型数据存储在内存中的四个字节
+    tbuf[2]=(unsigned char)(*(p1+1));
+    tbuf[3]=(unsigned char)(*(p1+2));
+    tbuf[4]=(unsigned char)(*(p1+3));
+    tbuf[5]=(unsigned char)(*(p2+0));        //取float类型数据存储在内存中的四个字节
+    tbuf[6]=(unsigned char)(*(p2+1));
+    tbuf[7]=(unsigned char)(*(p2+2));
+    tbuf[8]=(unsigned char)(*(p2+3));
+    tbuf[9]=(unsigned char)(*(p3+0));        //取float类型数据存储在内存中的四个字节
+    tbuf[10]=(unsigned char)(*(p3+1));
+    tbuf[11]=(unsigned char)(*(p3+2));
+    tbuf[12]=(unsigned char)(*(p3+3));
+
+    for(i=0; i<=len-2; i++){
+        tbuf[len-1] += tbuf[i];     //校验和
+    }
+//printf("%s",tbuf);		//串口发送字符串
+    PIOS_COM_SendBufferNonBlocking(debug_level, tbuf, len);
+    return 0;
+}
+
+// 发送两个int16_t的数，包头为5a
+extern int32_t PIOS_SendInt16(uint32_t debug_level, int16_t f_dat1, int16_t f_dat2)
+{
+    uint8_t len = 6;
+    uint8_t tbuf[6];
+    int i;
+    unsigned char *p1,*p2;
+
+    for(i = 0; i <= 5; i++)
+        tbuf[i] = 0;
+
+    p1=(unsigned char *)&f_dat1;		
+    p2=(unsigned char *)&f_dat2;		
+    tbuf[0] = 0x5a;
+    // tbuf[1] = channel;  //0xA1
+    // tbuf[2] = 4;
+    tbuf[1]=(unsigned char)(*(p2+1));        //取float类型数据存储在内存中的四个字节
+    tbuf[2]=(unsigned char)(*(p2+0));
+    tbuf[3]=(unsigned char)(*(p1+1));
+    tbuf[4]=(unsigned char)(*(p1+0));
+
+    for(i=0; i<=4; i++)
+        tbuf[5] += tbuf[i];     //校验和
+//printf("%s",tbuf);		//串口发送字符串
+    // DEBUG_PRINTF(3, "%c",tbuf);
+    PIOS_COM_SendBufferNonBlocking(debug_level, tbuf, len);
+    return 0;
+}
+
+// 发送时间专用，给串口发送一个uint32位的数据，包头为5b
+extern int32_t PIOS_SendUInt32(uint32_t debug_level, uint32_t uid)
+{
+    uint8_t len = 6;
+    uint8_t tbuf[6];
+    int i;
+    unsigned char *p;
+
+    for(i = 0; i <= len-1; i++)
+        tbuf[i] = 0;
+
+    p=(unsigned char *)&uid;				
+    tbuf[0] = 0x5b; // 包头
+    tbuf[1]=(unsigned char)(*(p+3));        //取float类型数据存储在内存中的四个字节
+    tbuf[2]=(unsigned char)(*(p+2));
+    tbuf[3]=(unsigned char)(*(p+1));
+    tbuf[4]=(unsigned char)(*(p+0));
+
+    for(i=0; i<=len-2; i++)
+        tbuf[5] += tbuf[i];     //校验和
+
+    PIOS_COM_SendBufferNonBlocking(debug_level, tbuf, len);
+    return 0;
+
+}
 
 #endif /* PIOS_INCLUDE_COM */
 

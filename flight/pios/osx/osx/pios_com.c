@@ -526,6 +526,7 @@ bool PIOS_COM_Available(uint32_t com_id)
     return (com_dev->driver->available)(com_dev->lower_id);
 }
 
+
 #endif /* if defined(PIOS_INCLUDE_COM) */
 
 /**

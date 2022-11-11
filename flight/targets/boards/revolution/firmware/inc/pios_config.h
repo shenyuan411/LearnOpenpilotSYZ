@@ -36,8 +36,8 @@
  * details.
  */
 
-/* #define PIOS_INCLUDE_DEBUG_CONSOLE */
-/* #define DEBUG_LEVEL 0 */
+ #define PIOS_INCLUDE_DEBUG_CONSOLE // syz
+ #define DEBUG_LEVEL 3 // syz
 /* #define PIOS_ENABLE_DEBUG_PINS */
 
 /* PIOS FreeRTOS support */

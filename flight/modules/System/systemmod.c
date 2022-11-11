@@ -294,10 +294,31 @@ static void systemTask(__attribute__((unused)) void *parameters)
         OPLinkStatusSet(&oplinkStatus);
 
 #endif /* if defined(PIOS_INCLUDE_RFM22B) */
+        // DEBUG_PRINTF(3, "\r\nS\t");
+        // SystemStatsData stats;
+        // // Get stats and update
+        // SystemStatsGet(&stats);
+        // uint32_t ft = xTaskGetTickCount() * portTICK_RATE_MS;
+        // DEBUG_PRINTF(3, ",%d\t,%d\t", stats.FlightTime, ft);
+        uint8_t armed;
+        FlightStatusArmedGet(&armed);
+        if (armed == FLIGHTSTATUS_ARMED_ARMED)
+        {
+            // SysLoopOuterloopPrintSyz();
+            // SysLoopInnerloopPrintSyz();
+            // SysLoopActuatorPrintSyz();
+        }
 
         if (xQueueReceive(objectPersistenceQueue, &ev, delayTime) == pdTRUE) {
             // If object persistence is updated call the callback
             objectUpdatedCb(&ev);
+
+            // SystemStatsData stats;
+            // // Get stats and update
+            // SystemStatsGet(&stats);
+            // uint32_t ft = xTaskGetTickCount() * portTICK_RATE_MS;
+            DEBUG_PRINTF(3, "\r\nD\t");
+            // DEBUG_PRINTF(3, ",%d\t,%d\t", stats.FlightTime, ft);
         }
     }
 }

@@ -59,9 +59,16 @@ extern int32_t PIOS_COM_SendFormattedString(uint32_t com_id, const char *format,
 extern uint16_t PIOS_COM_ReceiveBuffer(uint32_t com_id, uint8_t *buf, uint16_t buf_len, uint32_t timeout_ms);
 extern bool PIOS_COM_Available(uint32_t com_id);
 
+
+//syz
+extern int32_t PIOS_SendFloat48(uint32_t debug_level, float f_dat1, float f_dat2, float f_dat3);
+
+extern int32_t PIOS_SendInt16(uint32_t debug_level, int16_t f_dat1, int16_t f_dat2);
+
+extern int32_t PIOS_SendUInt32(uint32_t debug_level, uint32_t uid);
 #endif /* PIOS_COM_H */
 
 /**
  * @}
  * @}
- */
+ */ 
